@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane fx:id="mainPanel" prefHeight="189.0" prefWidth="301.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.ui.ProgressController">
+   <top>
+      <Label text="Calculate FFT" BorderPane.alignment="CENTER">
+         <font>
+            <Font name="System Bold" size="14.0" />
+         </font>
+         <padding>
+            <Insets top="20.0" />
+         </padding>
+      </Label>
+   </top>
+   <center>
+      <ProgressIndicator fx:id="progressIndicator" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="130.0" minWidth="130.0" prefHeight="130.0" prefWidth="130.0" BorderPane.alignment="CENTER">
+         <BorderPane.margin>
+            <Insets bottom="10.0" top="10.0" />
+         </BorderPane.margin>
+      </ProgressIndicator>
+   </center>
+</BorderPane>
