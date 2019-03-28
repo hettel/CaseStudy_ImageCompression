@@ -14,6 +14,15 @@ import java.util.function.Consumer;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 
+/**
+ * Facade for the hardware acces using oshi (Native Operating System 
+ * and Hardware Information: https://github.com/oshi/oshi)
+ * 
+ * Realized as a singleton. The class starts a periodic task reading the cpu load.
+ * If the load has changed the new value is published to registered subscribers.
+ * 
+ * Publisher and Subscriber are reactive streams compatible (http://www.reactive-streams.org/).
+ */
 public class CpuInfoPublisher implements Publisher<Double>
 {
   // Task for reading and publishing the CPU load
@@ -59,7 +68,7 @@ public class CpuInfoPublisher implements Publisher<Double>
 
   private ScheduledExecutorService executor;
 
-  private final int OBSERVATION_PERIOD = 10; // milliseconds
+  private final int OBSERVATION_PERIOD = 50; // milliseconds
   private SubmissionPublisher<Double> publisher;
 
   private CpuInfoPublisher()

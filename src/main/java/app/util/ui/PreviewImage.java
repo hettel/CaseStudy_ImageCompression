@@ -5,6 +5,11 @@ import java.io.InputStream;
 
 import javafx.scene.image.Image;
 
+/**
+ * Wrapper class for an image file. 
+ * 
+ * The image is used for the down scaled preview
+ */
 public class PreviewImage extends Image
 {
   private static final int previewWidth = 500;

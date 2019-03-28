@@ -17,6 +17,11 @@ import java.util.concurrent.ThreadFactory;
 
 import javafx.scene.image.ImageView;
 
+/**
+ * Helper class for parallel IO
+ * 
+ * Reads the jpg and png files of a directory and produced a List of ImageView-Objects.
+ */
 public final class FileIOHelper
 {
   private final static Executor executor;

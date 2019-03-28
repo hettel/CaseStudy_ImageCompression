@@ -3,6 +3,9 @@ package tool.hal;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 
+/**
+ * Convenience class for subsriber of the cpu load information
+ */
 public abstract class AbstractCpuInfoSubscriber implements Subscriber<Double>
 {
   private Subscription subscription;

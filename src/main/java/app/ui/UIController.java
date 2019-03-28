@@ -2,7 +2,7 @@ package app.ui;
 
 import static app.util.fft.FFT.fft2;
 import static app.util.fft.FFT.ifft2;
-import static app.util.fft.FFTUtils.extractSubMatrix;
+import static app.util.fft.FFTUtils.createSubMatrix;
 import static app.util.fft.FFTUtils.getAbsValuesOfMatrix;
 import static app.util.fft.FFTUtils.getLogScaledBufferedImageForMatix;
 import static app.util.fft.FFTUtils.getPaddedPowerOf2MatrixForPixelBuffer;
@@ -57,6 +57,9 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.DirectoryChooser;
 import tool.hal.CpuInfoPublisher;
 
+/**
+ * Controller for the UI
+ */
 public class UIController implements Initializable
 {
   @FXML
@@ -113,7 +116,6 @@ public class UIController implements Initializable
     if (file != null && file.isDirectory())
     {
       // Delete old image content
-      // mainImageView.setImage(null);
       imageBox.getChildren().clear();
 
       long time = System.currentTimeMillis();
@@ -161,11 +163,11 @@ public class UIController implements Initializable
     // --- Truncate Koef
     double compressRate = this.qualitySlider.getValue();
 
-    List<Double> sortedElement = this.sortedKoefCF.join();
-    int thresholdPos = (int) (compressRate * sortedElement.size());
-    double threshold = sortedElement.get(thresholdPos);
-
-    CompletableFuture<double[][]> fftTruncatedMatrix = CompletableFuture.supplyAsync(() -> FFTUtils.nullifyKoefficients(this.fftMatrix, threshold));
+    CompletableFuture<double[][]> fftTruncatedMatrix = CompletableFuture.supplyAsync(() -> {
+      List<Double> sortedElement = this.sortedKoefCF.join();
+      int thresholdPos = (int) (compressRate * sortedElement.size());
+      double threshold = sortedElement.get(thresholdPos);
+      return FFTUtils.createTruncatedMatrix(this.fftMatrix, threshold);});
 
     CompletableFuture<?> task1 = fftTruncatedMatrix.thenApplyAsync(fftTruncMatrix -> {
       double[][] fftTruncatedMatrixAbsValue = getAbsValuesOfMatrix(fftTruncMatrix);
@@ -183,20 +185,15 @@ public class UIController implements Initializable
     int width = (int) image.getWidth();
     int height = (int) image.getHeight();
     
-    AtomicBoolean isCanceled = new AtomicBoolean(false);
+    // Control variable for interrupting the calculation task2
+    AtomicBoolean isCancelled = new AtomicBoolean(false);
     CompletableFuture<?> task2 = fftTruncatedMatrix.thenApplyAsync(fftTruncMatrix -> {
-
       double[][] ifftReducedImageMatrix = ifft2(fftTruncMatrix);
-      
-      if( isCanceled.get() ) { System.err.println("Break after Step 1"); return null; }
-      
-      double[][] ifftReducedImageMatrixPadded = extractSubMatrix(ifftReducedImageMatrix, width, height);
-      
-      if( isCanceled.get() ) { System.err.println("Break after Step 2"); return null; }
-      
+      if( isCancelled.get() ) { System.err.println("Break after Step 1"); return null; }
+      double[][] ifftReducedImageMatrixPadded = createSubMatrix(ifftReducedImageMatrix, width, height);
+      if( isCancelled.get() ) { System.err.println("Break after Step 2"); return null; }
       double[][] ifftReducedImageMatrixPaddedAbsValue = getAbsValuesOfMatrix(ifftReducedImageMatrixPadded);
-
-      if( isCanceled.get() ) { System.err.println("Break after Step 3"); return null; }
+      if( isCancelled.get() ) { System.err.println("Break after Step 3"); return null; }
       
       int[] pixelBuffer = getPixelBufferFor(ifftReducedImageMatrixPaddedAbsValue);
       BufferedImage imageOut = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB); // Erzeuge neues Bild
@@ -207,11 +204,10 @@ public class UIController implements Initializable
         int y = i / width;
         imageOut.setRGB(x, y, argb);
       }
-
       return imageOut;
     }).thenAcceptAsync(imageOut -> this.fftImageView.setImage(SwingFXUtils.toFXImage(imageOut, null)), Platform::runLater).orTimeout(10, TimeUnit.SECONDS)
         .exceptionally(exce -> {
-          isCanceled.set(true);
+          isCancelled.set(true);
           exce.printStackTrace();
           return (Void) null;
         });
@@ -219,33 +215,14 @@ public class UIController implements Initializable
     task1.thenCombineAsync(task2, (v1, v2) -> closeProgressIndicator(), Platform::runLater);
   }
 
-  public byte[] convertIntegersToBytes(int[] integers)
-  {
-    if (integers != null)
-    {
-      byte[] outputBytes = new byte[integers.length * 4];
-
-      for (int i = 0, k = 0; i < integers.length; i++)
-      {
-        int integerTemp = integers[i];
-        for (int j = 0; j < 4; j++, k++)
-        {
-          outputBytes[k] = (byte) ((integerTemp >> (8 * j)) & 0xFF);
-        }
-      }
-      return outputBytes;
-    }
-    else
-    {
-      return null;
-    }
-  }
 
   @FXML
   public void exit()
   {
     Platform.exit();
   }
+  
+  // --- Application initialisation ---
 
   private CpuInfoPublisher publisher;
   private DecimalFormat df = new DecimalFormat("#0.0");
@@ -280,6 +257,8 @@ public class UIController implements Initializable
     cpuLoadBar.setFill(linGradient);
   }
 
+  
+  // Callback-Method: is called if a image is selected in the preview list
   private void loadImageConvertToGrayScaleAndCalculateFourierCoeffiecents(File file)
   {
     try
@@ -298,8 +277,9 @@ public class UIController implements Initializable
 
       int[] pixelBuffer = new int[width * height];
       pReader.getPixels(0, 0, width, height, format, pixelBuffer, 0, width);
-      int[] grayPixelBuffer = createNewGrayScaleBuffer(pixelBuffer);
 
+      int[] grayPixelBuffer = createNewGrayScaleBuffer(pixelBuffer);
+      
       CompletableFuture.supplyAsync(() -> {
         double[][] imageMatrix = getPaddedPowerOf2MatrixForPixelBuffer(grayPixelBuffer, width, height);
         this.fftMatrix = fft2(imageMatrix);
@@ -340,8 +320,7 @@ public class UIController implements Initializable
     }
   }
 
-  // --------- progress handling ---------
-
+  // --------- progress indicator handling ---------
   private BorderPane progress;
 
   private void showProgressIndicator()

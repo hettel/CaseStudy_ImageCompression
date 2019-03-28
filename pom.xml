@@ -3,33 +3,61 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>JavaPro-ImageCompression</groupId>
+	<groupId>ImageCompression</groupId>
 	<artifactId>ImageCompressionExample</artifactId>
-	<version>ImageCompressionSample</version>
+	<version>1.0</version>
 	<packaging>jar</packaging>
 
-	<name>JavaPro-ImageCompression</name>
-	<url>http://maven.apache.org</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<junit.jupiter.version>5.3.1</junit.jupiter.version>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<java.version>11</java.version>
+		<maven.compiler.source>${java.version}</maven.compiler.source>
+		<maven.compiler.target>${java.version}</maven.compiler.target>
+		<junit-platform.version>5.3.1</junit-platform.version>
 	</properties>
 
 	<build>
+		<resources>
+			<resource>
+				<filtering>false</filtering>
+				<directory>src/main/java</directory>
+				<includes>
+					<include>**/*.fxml</include>
+					<include>**/*.css</include>
+					<include>**/*.jpg</include>
+				</includes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.0</version>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.22.0</version>
 				<configuration>
-					<release>11</release>
+					<argLine>
+						--illegal-access=permit
+					</argLine>
 				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.22.1</version>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>2.22.0</version>
+				<configuration>
+					<argLine>
+						--illegal-access=permit
+					</argLine>
+				</configuration>
 			</plugin>
+
 			<!-- Copy dependencies to /lib -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -95,12 +123,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-math3</artifactId>
-			<version>3.6.1</version>
-		</dependency>
-
-		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 			<version>1.7.25</version>
@@ -114,20 +136,16 @@
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-api</artifactId>
-			<version>${junit.jupiter.version}</version>
+			<version>${junit-platform.version}</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-params</artifactId>
-			<version>${junit.jupiter.version}</version>
-			<scope>test</scope>
-		</dependency>
+
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-engine</artifactId>
-			<version>${junit.jupiter.version}</version>
+			<version>${junit-platform.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 	</dependencies>
 </project>

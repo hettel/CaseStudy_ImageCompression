@@ -8,6 +8,10 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.layout.BorderPane;
 
+/**
+ * Wrapper for a progress indicator that is shown during the
+ * calculation of the FFT 
+ */
 public class ProgressController implements Initializable
 {
   @FXML

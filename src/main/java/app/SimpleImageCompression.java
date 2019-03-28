@@ -17,7 +17,7 @@ public class SimpleImageCompression extends Application
       BorderPane root = (BorderPane) FXMLLoader.load(getClass().getResource("ui/ui.fxml"));
       Scene scene = new Scene(root);
       scene.getStylesheets().add(getClass().getResource("ui/ui.css").toExternalForm());
-      primaryStage.setTitle("Simple Version");
+      primaryStage.setTitle("Demo FFT Image Compression");
       primaryStage.setScene(scene);
       primaryStage.show();
     }

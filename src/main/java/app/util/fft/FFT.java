@@ -2,8 +2,24 @@ package app.util.fft;
 
 import java.util.stream.IntStream;
 
-public class FFT
+/**
+ * Methods for calculating the Fourier Transfomations
+ * 
+ * The fft() and ifft() methods are an adaption of the algorithm from
+ * https://introcs.cs.princeton.edu/java/97data/FFT.java.html
+ *
+ * Because of memory efficiency complex vectors are represented by double array:
+ * [c_1, c_2, ..., c_n] is mapped to [Re(c_1), Im(c_1), Re(c_2), Im(c_2), ..., Re(c_n), Im(c_n)]
+ * 
+ * Remark: This class should not be used in productive software!
+ */
+public final class FFT
 {
+  private FFT()
+  {
+    
+  }
+  
   // compute the FFT of x[], assuming its length is a power of 2
   public static double[] fft(double[] x)
   {
@@ -86,6 +102,8 @@ public class FFT
     return y;
   }
   
+  //compute the two-dimensonal FFT of matrix[][], assuming its width and height are power of 2
+  //first compute the fft of every row and subsequently of the columns
   public static double[][] fft2(double[][] matrix)
   {
     assert (matrix != null && matrix[0] != null);
@@ -133,6 +151,7 @@ public class FFT
     return fftRows;
   }
   
+  //compute the two-dimensonal inverse FFT of matrix[][], assuming its width and height are power of 2
   public static double[][] ifft2(double[][] matrix)
   {
     assert (matrix != null && matrix[0] != null);
@@ -179,5 +198,4 @@ public class FFT
    
     return fftRows;
   }
-
 }
