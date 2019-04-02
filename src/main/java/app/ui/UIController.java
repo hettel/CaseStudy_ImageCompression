@@ -98,6 +98,7 @@ public class UIController implements Initializable
 
   // Loading Flag
   private AtomicBoolean isCalculatingImage = new AtomicBoolean(false);
+  private AtomicBoolean timeOutExceptionOccured = new AtomicBoolean(false);
   
   // FFT-Variables
   private double[][] fftMatrix;
@@ -158,6 +159,9 @@ public class UIController implements Initializable
     if (this.mainImageView.getImage() == null)
       return;
 
+    if( this.timeOutExceptionOccured.get() )
+      return;
+    
     this.showProgressIndicator();
  
     // --- Truncate Koef
@@ -175,7 +179,7 @@ public class UIController implements Initializable
       BufferedImage fftTruncatedImage = getLogScaledBufferedImageForMatix(fftTruncatedMatrixAbsValueShifted, this.maxValueCF);
       return fftTruncatedImage;
     }).thenAcceptAsync(fftTruncatedImage -> this.fftTruncKoefImageView.setImage(SwingFXUtils.toFXImage(fftTruncatedImage, null)), Platform::runLater)
-        .orTimeout(15, TimeUnit.SECONDS).exceptionally(exce -> {
+        .orTimeout(20, TimeUnit.SECONDS).exceptionally(exce -> {
           exce.printStackTrace();
           return (Void) null;
         });
@@ -205,14 +209,17 @@ public class UIController implements Initializable
         imageOut.setRGB(x, y, argb);
       }
       return imageOut;
-    }).thenAcceptAsync(imageOut -> this.fftImageView.setImage(SwingFXUtils.toFXImage(imageOut, null)), Platform::runLater).orTimeout(10, TimeUnit.SECONDS)
+    }).thenAcceptAsync(imageOut -> this.fftImageView.setImage(SwingFXUtils.toFXImage(imageOut, null)), Platform::runLater)
+        .orTimeout(20, TimeUnit.SECONDS)
         .exceptionally(exce -> {
           isCancelled.set(true);
           exce.printStackTrace();
           return (Void) null;
         });
 
-    task1.thenCombineAsync(task2, (v1, v2) -> closeProgressIndicator(), Platform::runLater);
+    CompletableFuture.allOf( task1, task2).handleAsync((val,exce) -> closeProgressIndicator() , Platform::runLater);
+    
+    //task1.thenCombineAsync(task2, (v1, v2) -> closeProgressIndicator(), Platform::runLater);
   }
 
 
@@ -260,10 +267,12 @@ public class UIController implements Initializable
   
   // Callback-Method: is called if a image is selected in the preview list
   private void loadImageConvertToGrayScaleAndCalculateFourierCoeffiecents(File file)
-  {
+  {   
     try
     {
       this.startBtn.setDisable(true);
+      
+      this.timeOutExceptionOccured.set(false);
 
       byte[] bytes = Files.readAllBytes(Paths.get(file.getAbsolutePath()));
       InputStream iStream = new ByteArrayInputStream(bytes);
@@ -272,6 +281,8 @@ public class UIController implements Initializable
       PixelReader pReader = image.getPixelReader();
       int width = (int) image.getWidth();
       int height = (int) image.getHeight();
+      
+      System.out.println("Image size " + width + " x " + height + " (" + (width * height) + ") pixels");
 
       WritablePixelFormat<IntBuffer> format = WritablePixelFormat.getIntArgbInstance();
 
@@ -280,23 +291,33 @@ public class UIController implements Initializable
 
       int[] grayPixelBuffer = createNewGrayScaleBuffer(pixelBuffer);
       
+     // Control variable for interrupting the calculation task2
+      AtomicBoolean isCancelled = new AtomicBoolean(false);
       CompletableFuture.supplyAsync(() -> {
         double[][] imageMatrix = getPaddedPowerOf2MatrixForPixelBuffer(grayPixelBuffer, width, height);
         this.fftMatrix = fft2(imageMatrix);
+        if( isCancelled.get() ) return null;
         this.fftMatrixAbsValue = getAbsValuesOfMatrix(fftMatrix);
-
+        
+        if( isCancelled.get() ) return null;
         this.sortedKoefCF = CompletableFuture.supplyAsync(() -> getSortedElements(fftMatrixAbsValue));
 
+        if( isCancelled.get() ) return null;
         double[][] fftMatrixAbsValueShifted = FFTUtils.shiftAbsFourierKoef(fftMatrixAbsValue);
 
         this.maxValueCF = this.sortedKoefCF.join().get(this.sortedKoefCF.join().size() - 1);
+        if( isCancelled.get() ) return null;
         BufferedImage fftBufferedImage = getLogScaledBufferedImageForMatix(fftMatrixAbsValueShifted, this.maxValueCF);
         return fftBufferedImage;
       }).thenAcceptAsync(fftBufferedImage -> this.fftKoefImageView.setImage(SwingFXUtils.toFXImage(fftBufferedImage, null)), Platform::runLater)
         .thenRunAsync( () -> startBtn.setDisable(false), Platform::runLater)
         .thenRunAsync( () -> isCalculatingImage.set(false) )
+        .orTimeout(20, TimeUnit.SECONDS )
         .exceptionally(exce -> {
+            isCancelled.set(true);
+            this.timeOutExceptionOccured.set(true);
             exce.printStackTrace();
+            isCalculatingImage.set(false);
             return null;
           });
 
