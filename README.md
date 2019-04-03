@@ -17,9 +17,9 @@ Build command:
 
 The command create a lib and module directory that contains the dependencies and module runnable.
 
-Start the application:
+To start the application:
 
-`java -Xms12g -Xmx14g -p modules;lib -m FFTImageCompression/app.SimpleImageCompression`
+`java -Xms12g -Xmx16g -p modules;lib -m FFTImageCompression/app.SimpleImageCompression`
 
 ---
 
@@ -34,5 +34,5 @@ The selected image will be transformed to a gray image (upper image on the left 
 On the right side a compression rate can be selected. Pressing the start button the selected 
 percent smallest coefficients of the two-dimensional Fourier Transformation are set to zero. With this truncated image information the image is reconstructed. The reconstructed image an the truncated Fourier matrix are both shown on the left column.
 
-**Remark:** The images should be not too large. A size of max 4096 x 4096 pixels is strongly recommended!  For larger images timeout exceptions can occur and can leave the application in an undefined state.
+**Remark:** The images should be not too large. A size of max 4096 x 4096 pixels is strongly recommended!  For larger images timeout or out of memory exceptions can occur and can leave the application in an undefined state.
 
