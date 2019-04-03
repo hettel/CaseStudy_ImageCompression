@@ -67,6 +67,9 @@ public class UIController implements Initializable
 
   @FXML
   private VBox fftImageContainer;
+  
+  @FXML
+  private VBox imageContainer;
 
   @FXML
   private ImageView mainImageView;
@@ -95,6 +98,10 @@ public class UIController implements Initializable
   private Rectangle cpuLoadBar;
   @FXML
   private Label cpuLabel;
+
+  // Progress indicator
+  private BorderPane progress;
+
 
   // Loading Flag
   private AtomicBoolean isCalculatingImage = new AtomicBoolean(false);
@@ -162,7 +169,7 @@ public class UIController implements Initializable
     if( this.timeOutExceptionOccured.get() )
       return;
     
-    this.showProgressIndicator();
+    this.showProgressIndicatorCalculateReducedImage();
  
     // --- Truncate Koef
     double compressRate = this.qualitySlider.getValue();
@@ -217,7 +224,7 @@ public class UIController implements Initializable
           return (Void) null;
         });
 
-    CompletableFuture.allOf( task1, task2).handleAsync((val,exce) -> closeProgressIndicator() , Platform::runLater);
+    CompletableFuture.allOf( task1, task2).handleAsync((val,exce) -> closeProgressIndicatorCalculateReducedImage() , Platform::runLater);
     
     //task1.thenCombineAsync(task2, (v1, v2) -> closeProgressIndicator(), Platform::runLater);
   }
@@ -242,6 +249,17 @@ public class UIController implements Initializable
 
     this.qualityValue.textProperty().bind(qualitySlider.valueProperty().asString("%6.2f"));
 
+    try
+    {
+      progress = FXMLLoader.load(getClass().getResource("progress.fxml"));
+      progress.getStylesheets().add(getClass().getResource("ui.css").toExternalForm());
+    }
+    catch (IOException e)
+    {
+      e.printStackTrace();
+    }
+    
+    
     CompletableFuture.runAsync(() -> {
       // Initialize the hardware detection for getting the CPU load
       publisher = CpuInfoPublisher.getInstance();
@@ -291,6 +309,8 @@ public class UIController implements Initializable
 
       int[] grayPixelBuffer = createNewGrayScaleBuffer(pixelBuffer);
       
+      showProgressIndicatorCalculateFFT();
+      
      // Control variable for interrupting the calculation task2
       AtomicBoolean isCancelled = new AtomicBoolean(false);
       CompletableFuture.supplyAsync(() -> {
@@ -310,7 +330,7 @@ public class UIController implements Initializable
         BufferedImage fftBufferedImage = getLogScaledBufferedImageForMatix(fftMatrixAbsValueShifted, this.maxValueCF);
         return fftBufferedImage;
       }).thenAcceptAsync(fftBufferedImage -> this.fftKoefImageView.setImage(SwingFXUtils.toFXImage(fftBufferedImage, null)), Platform::runLater)
-        .thenRunAsync( () -> startBtn.setDisable(false), Platform::runLater)
+        .thenRunAsync( () -> { this.startBtn.setDisable(false); closeProgressIndicatorCalculateFFT();}, Platform::runLater)
         .thenRunAsync( () -> isCalculatingImage.set(false) )
         .orTimeout(20, TimeUnit.SECONDS )
         .exceptionally(exce -> {
@@ -318,6 +338,7 @@ public class UIController implements Initializable
             this.timeOutExceptionOccured.set(true);
             exce.printStackTrace();
             isCalculatingImage.set(false);
+            CompletableFuture.runAsync(() -> closeProgressIndicatorCalculateFFT(), Platform::runLater);
             return null;
           });
 
@@ -342,36 +363,37 @@ public class UIController implements Initializable
   }
 
   // --------- progress indicator handling ---------
-  private BorderPane progress;
 
-  private void showProgressIndicator()
+  private void showProgressIndicatorCalculateFFT()
   {
-    try
-    {
-      progress = FXMLLoader.load(getClass().getResource("progress.fxml"));
-      progress.getStylesheets().add(getClass().getResource("ui.css").toExternalForm());
-
       this.startBtn.setDisable(true);
-      this.fftImageContainer.getChildren().remove(fftImageView);
-      this.fftImageContainer.getChildren().remove(fftTruncKoefImageView);
-      this.fftImageContainer.getChildren().add(progress);
-    }
-    catch (IOException exce)
-    {
-      exce.printStackTrace();
-    }
+      
+      this.imageContainer.getChildren().remove( fftKoefImageView );
+      this.imageContainer.getChildren().add(this.progress);
+  }
+  
+  private Void closeProgressIndicatorCalculateFFT()
+  {
+     this.imageContainer.getChildren().add( fftKoefImageView );
+     this.imageContainer.getChildren().remove(this.progress);
+
+    return (Void) null;
+  }
+  
+  private void showProgressIndicatorCalculateReducedImage()
+  {
+      this.startBtn.setDisable(true);
+      this.fftImageContainer.getChildren().remove(this.fftImageView);
+      this.fftImageContainer.getChildren().remove(this.fftTruncKoefImageView);
+      this.fftImageContainer.getChildren().add(this.progress);
   }
 
-  private Void closeProgressIndicator()
+  private Void closeProgressIndicatorCalculateReducedImage()
   {
-    this.startBtn.setDisable(false);
-    if (progress != null)
-    {
-      this.fftImageContainer.getChildren().remove(progress);
-      this.fftImageContainer.getChildren().add(fftImageView);
-      this.fftImageContainer.getChildren().add(fftTruncKoefImageView);
-      this.progress = null;
-    }
+     this.startBtn.setDisable(false);
+     this.fftImageContainer.getChildren().remove(this.progress);
+     this.fftImageContainer.getChildren().add(this.fftImageView);
+     this.fftImageContainer.getChildren().add(this.fftTruncKoefImageView);
 
     return (Void) null;
   }

@@ -25,7 +25,7 @@
                <children>
                   <HBox prefHeight="573.0" prefWidth="700.0" spacing="70.0">
                      <children>
-                        <VBox spacing="10.0">
+                        <VBox fx:id="imageContainer" spacing="10.0">
                            <children>
                               <Label text="Original">
                                  <padding>
