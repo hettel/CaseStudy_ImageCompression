@@ -103,7 +103,7 @@ public class UIController implements Initializable
   private BorderPane progress;
 
 
-  // Loading Flag
+  // Loading flags, controlling async tasks
   private AtomicBoolean isCalculatingImage = new AtomicBoolean(false);
   private AtomicBoolean timeOutExceptionOccured = new AtomicBoolean(false);
   
@@ -171,7 +171,6 @@ public class UIController implements Initializable
     
     this.showProgressIndicatorCalculateReducedImage();
  
-    // --- Truncate Koef
     double compressRate = this.qualitySlider.getValue();
 
     CompletableFuture<double[][]> fftTruncatedMatrix = CompletableFuture.supplyAsync(() -> {
@@ -180,6 +179,7 @@ public class UIController implements Initializable
       double threshold = sortedElement.get(thresholdPos);
       return FFTUtils.createTruncatedMatrix(this.fftMatrix, threshold);});
 
+    // split task 1 from fftTruncatedMatrix
     CompletableFuture<?> task1 = fftTruncatedMatrix.thenApplyAsync(fftTruncMatrix -> {
       double[][] fftTruncatedMatrixAbsValue = getAbsValuesOfMatrix(fftTruncMatrix);
       double[][] fftTruncatedMatrixAbsValueShifted = shiftAbsFourierKoef(fftTruncatedMatrixAbsValue);
@@ -198,6 +198,8 @@ public class UIController implements Initializable
     
     // Control variable for interrupting the calculation task2
     AtomicBoolean isCancelled = new AtomicBoolean(false);
+    
+    // split task 2 from fftTruncatedMatrix
     CompletableFuture<?> task2 = fftTruncatedMatrix.thenApplyAsync(fftTruncMatrix -> {
       double[][] ifftReducedImageMatrix = ifft2(fftTruncMatrix);
       if( isCancelled.get() ) { System.err.println("Break after Step 1"); return null; }
@@ -224,9 +226,8 @@ public class UIController implements Initializable
           return (Void) null;
         });
 
+    // wait for task1 and task2 and finally close indicator
     CompletableFuture.allOf( task1, task2).handleAsync((val,exce) -> closeProgressIndicatorCalculateReducedImage() , Platform::runLater);
-    
-    //task1.thenCombineAsync(task2, (v1, v2) -> closeProgressIndicator(), Platform::runLater);
   }
 
 
@@ -259,9 +260,8 @@ public class UIController implements Initializable
       e.printStackTrace();
     }
     
-    
-    CompletableFuture.runAsync(() -> {
-      // Initialize the hardware detection for getting the CPU load
+    // Initialize the hardware detection for getting the CPU load
+    CompletableFuture.runAsync(() -> {  
       publisher = CpuInfoPublisher.getInstance();
       publisher.subscribe(value -> Platform.runLater(() -> {
         repaintGradient(value);
@@ -283,7 +283,7 @@ public class UIController implements Initializable
   }
 
   
-  // Callback-Method: is called if a image is selected in the preview list
+  // Callback-Method:  called if an image is selected in the preview list
   private void loadImageConvertToGrayScaleAndCalculateFourierCoeffiecents(File file)
   {   
     try
@@ -313,6 +313,7 @@ public class UIController implements Initializable
       
      // Control variable for interrupting the calculation task2
       AtomicBoolean isCancelled = new AtomicBoolean(false);
+      
       CompletableFuture.supplyAsync(() -> {
         double[][] imageMatrix = getPaddedPowerOf2MatrixForPixelBuffer(grayPixelBuffer, width, height);
         this.fftMatrix = fft2(imageMatrix);
@@ -362,8 +363,10 @@ public class UIController implements Initializable
     }
   }
 
+  // -----------------------------------------------
   // --------- progress indicator handling ---------
-
+  // -----------------------------------------------
+  
   private void showProgressIndicatorCalculateFFT()
   {
       this.startBtn.setDisable(true);

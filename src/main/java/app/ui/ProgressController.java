@@ -9,7 +9,7 @@ import javafx.scene.control.ProgressIndicator;
 import javafx.scene.layout.BorderPane;
 
 /**
- * Wrapper for a progress indicator that is shown during the
+ * Wrapper for a progress indicator. It is shown during the
  * calculation of the FFT 
  */
 public class ProgressController implements Initializable
