@@ -5,6 +5,7 @@ import java.util.concurrent.Flow.Subscription;
 
 /**
  * Convenience class for subsriber of the cpu load information
+ * Subscriber for a reactive stream
  */
 public abstract class AbstractCpuInfoSubscriber implements Subscriber<Double>
 {
