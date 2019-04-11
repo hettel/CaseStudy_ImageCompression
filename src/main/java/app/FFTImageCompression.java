@@ -6,7 +6,13 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.fxml.FXMLLoader;
 
-public class SimpleImageCompression extends Application
+/**
+ * 
+ * This Java program is an example for using task parallelism to enhance the performance. 
+ * As show case the size reduction of an image using the Fast Fourier Transform (FFT) is used.
+ *
+ */
+public class FFTImageCompression extends Application
 {
   @Override
   public void start(Stage primaryStage)
