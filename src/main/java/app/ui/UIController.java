@@ -178,6 +178,9 @@ public class UIController implements Initializable
     this.showProgressIndicatorCalculateReducedImage();
  
     double compressRate = this.qualitySlider.getValue();
+    
+    // Control variable for interrupting the asyncronous calculations
+    AtomicBoolean isCancelled = new AtomicBoolean(false);
 
     CompletableFuture<double[][]> fftTruncatedMatrix = CompletableFuture.supplyAsync(() -> {
       List<Double> sortedElement = this.sortedKoefCF.join();
@@ -185,14 +188,18 @@ public class UIController implements Initializable
       double threshold = sortedElement.get(thresholdPos);
       return FFTUtils.createTruncatedMatrix(this.fftMatrix, threshold);});
 
+ 
     // split task 1 from fftTruncatedMatrix
     CompletableFuture<?> task1 = fftTruncatedMatrix.thenApplyAsync(fftTruncMatrix -> {
       double[][] fftTruncatedMatrixAbsValue = getAbsValuesOfMatrix(fftTruncMatrix);
+      if( isCancelled.get() )  return null; 
       double[][] fftTruncatedMatrixAbsValueShifted = shiftAbsFourierKoef(fftTruncatedMatrixAbsValue);
+      if( isCancelled.get() )  return null; 
       BufferedImage fftTruncatedImage = getLogScaledBufferedImageForMatix(fftTruncatedMatrixAbsValueShifted, this.maxValueCF);
       return fftTruncatedImage;
     }).thenAcceptAsync(fftTruncatedImage -> this.fftTruncKoefImageView.setImage(SwingFXUtils.toFXImage(fftTruncatedImage, null)), Platform::runLater)
         .orTimeout(20, TimeUnit.SECONDS).exceptionally(exce -> {
+          isCancelled.set(true);
           exce.printStackTrace();
           return (Void) null;
         });
@@ -202,20 +209,17 @@ public class UIController implements Initializable
     int width = (int) image.getWidth();
     int height = (int) image.getHeight();
     
-    // Control variable for interrupting the calculation task2
-    AtomicBoolean isCancelled = new AtomicBoolean(false);
-    
     // split task 2 from fftTruncatedMatrix
     CompletableFuture<?> task2 = fftTruncatedMatrix.thenApplyAsync(fftTruncMatrix -> {
       double[][] ifftReducedImageMatrix = ifft2(fftTruncMatrix);
-      if( isCancelled.get() ) { System.err.println("Break after Step 1"); return null; }
+      if( isCancelled.get() )  return null; 
       double[][] ifftReducedImageMatrixPadded = createSubMatrix(ifftReducedImageMatrix, width, height);
-      if( isCancelled.get() ) { System.err.println("Break after Step 2"); return null; }
+      if( isCancelled.get() )  return null; 
       double[][] ifftReducedImageMatrixPaddedAbsValue = getAbsValuesOfMatrix(ifftReducedImageMatrixPadded);
-      if( isCancelled.get() ) { System.err.println("Break after Step 3"); return null; }
+      if( isCancelled.get() )  return null; 
       
       int[] pixelBuffer = getPixelBufferFor(ifftReducedImageMatrixPaddedAbsValue);
-      BufferedImage imageOut = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB); // Erzeuge neues Bild
+      BufferedImage imageOut = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB); // Create new image
       for (int i = 0; i < pixelBuffer.length; i++)
       {
         int argb = pixelBuffer[i];
@@ -232,7 +236,7 @@ public class UIController implements Initializable
           return (Void) null;
         });
 
-    // wait for task1 and task2 and finally close indicator
+    // wait for task1 and task2 and finally close progress indicator
     CompletableFuture.allOf( task1, task2).handleAsync((val,exce) -> closeProgressIndicatorCalculateReducedImage() , Platform::runLater);
   }
 
@@ -245,8 +249,8 @@ public class UIController implements Initializable
   
   // --- Application initialisation ---
 
-  private CpuInfoPublisher publisher;
-  private DecimalFormat df = new DecimalFormat("#0.0");
+  private volatile CpuInfoPublisher publisher;
+  private final DecimalFormat df = new DecimalFormat("#0.0");
 
   @Override
   public void initialize(URL location, ResourceBundle resources)
@@ -256,8 +260,8 @@ public class UIController implements Initializable
       int numOfProc = Runtime.getRuntime().availableProcessors();
       
       this.workerPool = new ForkJoinPool( Math.max(1, numOfProc-1) );
-      this.fftWorkerPool1 = new ForkJoinPool( Math.max(1, numOfProc/2) );
-      this.fftWorkerPool2 = new ForkJoinPool( Math.max(1, numOfProc/2) );
+      this.fftWorkerPool1 = new ForkJoinPool( Math.max(1, numOfProc/2 - 1) );
+      this.fftWorkerPool2 = new ForkJoinPool( Math.max(1, numOfProc/2 - 1) );
     } );
     
     this.startBtn.setDisable(true);
@@ -351,7 +355,7 @@ public class UIController implements Initializable
         if( isCancelled.get() ) return null;
         BufferedImage fftBufferedImage = getLogScaledBufferedImageForMatix(fftMatrixAbsValueShifted, this.maxValueCF);
         return fftBufferedImage;
-      }).thenAcceptAsync(fftBufferedImage -> this.fftKoefImageView.setImage(SwingFXUtils.toFXImage(fftBufferedImage, null)), Platform::runLater)
+      }, this.workerPool).thenAcceptAsync(fftBufferedImage -> this.fftKoefImageView.setImage(SwingFXUtils.toFXImage(fftBufferedImage, null)), Platform::runLater)
         .thenRunAsync( () -> { this.startBtn.setDisable(false); closeProgressIndicatorCalculateFFT();}, Platform::runLater)
         .thenRunAsync( () -> isCalculatingImage.set(false) )
         .orTimeout(20, TimeUnit.SECONDS )
