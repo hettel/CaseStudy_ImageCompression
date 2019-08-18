@@ -248,7 +248,7 @@ public final class FFTUtils
   // Gets a sorted List of the matrix elements
   public static List<Double> getSortedElements(double[][] matrix)
   {
-    return Arrays.stream(matrix).flatMapToDouble( row -> Arrays.stream(row) ).sorted().boxed().collect(Collectors.toList());
+    return Arrays.stream(matrix).parallel().flatMapToDouble( row -> Arrays.stream(row) ).sorted().boxed().collect(Collectors.toList());
   }
 
   // Creates a log scaled gray image of a matrix. The gray value of a pixel ist calculated by

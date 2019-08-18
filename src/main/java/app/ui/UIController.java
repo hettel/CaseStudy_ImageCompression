@@ -24,6 +24,7 @@ import java.text.DecimalFormat;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -112,6 +113,11 @@ public class UIController implements Initializable
   private double[][] fftMatrixAbsValue;
   private CompletableFuture<List<Double>> sortedKoefCF;
   private double maxValueCF;
+  
+//FFT-Worker Pools
+ private volatile ForkJoinPool workerPool = null;
+ private volatile ForkJoinPool fftWorkerPool1 = null;
+ private volatile ForkJoinPool fftWorkerPool2 = null;
 
   @FXML
   public void open()
@@ -245,6 +251,15 @@ public class UIController implements Initializable
   @Override
   public void initialize(URL location, ResourceBundle resources)
   {
+    // Initialize worker pools
+    CompletableFuture<?> initThreadPools = CompletableFuture.runAsync(() -> { 
+      int numOfProc = Runtime.getRuntime().availableProcessors();
+      
+      this.workerPool = new ForkJoinPool( Math.max(1, numOfProc-1) );
+      this.fftWorkerPool1 = new ForkJoinPool( Math.max(1, numOfProc/2) );
+      this.fftWorkerPool2 = new ForkJoinPool( Math.max(1, numOfProc/2) );
+    } );
+    
     this.startBtn.setDisable(true);
     this.cpuLoadBar.setFill(Color.GREEN);
 
@@ -271,6 +286,12 @@ public class UIController implements Initializable
       ex.printStackTrace();
       return (Void) null;
     });
+    
+    // wait until pools are initilized
+    initThreadPools.join();
+    assert(this.workerPool != null);
+    assert(this.fftWorkerPool1 != null);
+    assert(this.fftWorkerPool2 != null);
   }
 
   // Color gradient for CPU load

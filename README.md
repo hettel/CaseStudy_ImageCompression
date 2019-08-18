@@ -1,8 +1,13 @@
 # ImageCompression-CaseStudy
 
-This project contains a sample application demonstrating the compression of images by applying a two-dimensional Fast Fourier Transformation.
+This is a sample application demonstrating the compression of images by applying a two-dimensional Fast Fourier Transformation.
 
-This project is part of a lesson hold on the university of applied sciences Kaiserslautern.
+This project is part of a lesson on concurrent programming with Java hold on the **University of Applied Sciences Kaiserslautern**.
+
+The main focus is on the application of parallel streams (data parallelism) and the `CompletableFuture` class (task parallelism).
+
+Note that the application uses nested parallelism. Some asynchronous task use parallel streams. These streams use their own ForkJoinPool. 
+
 
 Remarks
 * The project was build with OpenJDK 11 
