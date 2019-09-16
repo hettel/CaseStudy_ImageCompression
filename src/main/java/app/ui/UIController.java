@@ -105,8 +105,8 @@ public class UIController implements Initializable
 
 
   // Loading flags, controlling async tasks
-  private AtomicBoolean isCalculatingImage = new AtomicBoolean(false);
-  private AtomicBoolean timeOutExceptionOccured = new AtomicBoolean(false);
+  private final AtomicBoolean isCalculatingImage = new AtomicBoolean(false);
+  private final AtomicBoolean timeOutExceptionOccured = new AtomicBoolean(false);
   
   // FFT-Variables
   private double[][] fftMatrix;
