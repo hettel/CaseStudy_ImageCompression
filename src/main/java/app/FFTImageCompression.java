@@ -17,7 +17,7 @@ public class FFTImageCompression extends Application
   @Override
   public void start(Stage primaryStage)
   {
-    long time = System.currentTimeMillis();
+    long time = System.nanoTime();
     try
     {
       BorderPane root = (BorderPane) FXMLLoader.load(getClass().getResource("ui/ui.fxml"));
@@ -31,7 +31,7 @@ public class FFTImageCompression extends Application
     {
       e.printStackTrace();
     }
-    System.out.println("Application startup time : " + (System.currentTimeMillis() - time) + " [ms]");
+    System.out.println("Application startup time : " + (System.nanoTime() - time)/1_000_000 + " [ms]");
   }
 
   public static void main(String[] args)

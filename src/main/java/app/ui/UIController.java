@@ -132,9 +132,9 @@ public class UIController implements Initializable
       // Delete old image content
       imageBox.getChildren().clear();
 
-      long time = System.currentTimeMillis();
+      long time = System.nanoTime();
       List<ImageView> imageViews = FileIOHelper.loadPreViewImages(file);
-      System.out.println("Time to load preview images : " + (System.currentTimeMillis() - time) + "[ms]");
+      System.out.println("Time to load preview images : " + (System.nanoTime() - time)/1_000_000 + " [ms]");
 
       for (ImageView imageView : imageViews)
       {

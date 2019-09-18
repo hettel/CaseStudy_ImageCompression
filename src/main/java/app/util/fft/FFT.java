@@ -122,7 +122,7 @@ public final class FFT
     });
     
     
-    //sample columns and transform is
+    //sample columns and transform it
     double[][] fftCols = new double[cols/2][];
     IntStream.range(0, cols/2).parallel().forEach( j -> {
     {
@@ -170,7 +170,7 @@ public final class FFT
     });
     
     
-    //sample columns and transform is
+    //sample columns and transform it
     double[][] fftCols = new double[cols/2][];
     IntStream.range(0, cols/2).parallel().forEach( j -> {
     {
