@@ -316,7 +316,7 @@ public class UIController implements Initializable
       this.startBtn.setDisable(true);
       
       this.timeOutExceptionOccured.set(false);
-
+      
       byte[] bytes = Files.readAllBytes(Paths.get(file.getAbsolutePath()));
       InputStream iStream = new ByteArrayInputStream(bytes);
       Image image = new Image(iStream);
@@ -324,22 +324,25 @@ public class UIController implements Initializable
       PixelReader pReader = image.getPixelReader();
       int width = (int) image.getWidth();
       int height = (int) image.getHeight();
+      int[] pixelBuffer = new int[width * height];
       
       System.out.println("Image size " + width + " x " + height + " (" + (width * height) + ") pixels");
 
-      WritablePixelFormat<IntBuffer> format = WritablePixelFormat.getIntArgbInstance();
-
-      int[] pixelBuffer = new int[width * height];
-      pReader.getPixels(0, 0, width, height, format, pixelBuffer, 0, width);
-
-      int[] grayPixelBuffer = createNewGrayScaleBuffer(pixelBuffer);
+      CompletableFuture<int[]> calculateGrayPixelBuffer = CompletableFuture.supplyAsync(() ->
+      {
+        WritablePixelFormat<IntBuffer> format = WritablePixelFormat.getIntArgbInstance();
+        pReader.getPixels(0, 0, width, height, format, pixelBuffer, 0, width);
+  
+        int[] grayPixelBuffer = createNewGrayScaleBuffer(pixelBuffer);
+        return grayPixelBuffer;
+      } );
       
       showProgressIndicatorCalculateFFT();
       
      // Control variable for interrupting the calculation task2
       AtomicBoolean isCancelled = new AtomicBoolean(false);
       
-      CompletableFuture.supplyAsync(() -> {
+      calculateGrayPixelBuffer.thenApplyAsync( (grayPixelBuffer)  -> {
         double[][] imageMatrix = getPaddedPowerOf2MatrixForPixelBuffer(grayPixelBuffer, width, height);
         this.fftMatrix = fft2(imageMatrix);
         if( isCancelled.get() ) return null;
@@ -368,6 +371,7 @@ public class UIController implements Initializable
             return null;
           });
 
+      int[] grayPixelBuffer = calculateGrayPixelBuffer.join();
       BufferedImage imageOut = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB); // Erzeuge neues Bild
       for (int i = 0; i < pixelBuffer.length; i++)
       {
