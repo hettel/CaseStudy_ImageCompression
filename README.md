@@ -34,10 +34,10 @@ The application offers a simple user interface. You can load a directory with jp
 
 <img src="images/AppUI.jpg" alt="drawing" width="500"/>
 
-The selected image will be transformed to a gray image (upper image on the left column). From the gray image a two-dimensional Fourier Transformation is calculated an the absolute values of the Fourier coefficients are shown in lower image on the left column. The biggest coefficient is colored white, zero valued coefficients are colored black. Colors between are scaled log-gray.
+The selected image will be transformed to a gray image (upper image on the left column). From the gray image a two-dimensional Fourier Transformation is calculated an the absolute values of the Fourier coefficients are shown in lower image on the left column. The biggest coefficient is colored white, zero valued coefficients are colored black. Colors between are gray scaled logerithmically.
 
 On the right side a compression rate can be selected. Pressing the start button the selected 
-percent smallest coefficients of the two-dimensional Fourier Transformation are set to zero. With this truncated image information the image is reconstructed. The reconstructed image an the truncated Fourier matrix are both shown on the left column.
+percent smallest coefficients of the two-dimensional Fourier Transformation are set to zero. With this truncated image information the image is reconstructed. The reconstructed image an the truncated Fourier matrix are both shown on the right column.
 
 **Remark:** The images should be not too large. A size of max 4096 x 4096 pixels is strongly recommended!  For larger images timeout or out of memory exceptions can occur and can leave the application in an undefined state.
 
